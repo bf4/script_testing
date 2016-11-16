@@ -1,0 +1,6 @@
+dependencies:
+  post:
+  - bin/setup
+test:
+  override:
+  - bin/test
