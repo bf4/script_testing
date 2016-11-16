@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+
+abspath="$(cd "${0%/*}" 2>/dev/null || true; echo "$PWD"/"${0##*/}")"
+root_dir="$(dirname "$abspath")"
+exec bats ${CI:+--tap} "${root_dir}"

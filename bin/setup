@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+rm -rf bats
+git clone --depth 1 https://github.com/sstephenson/bats.git
