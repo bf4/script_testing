@@ -15,6 +15,31 @@ test:
         libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state failure -desc "Shellcheck failed"
         false # fail the build
       fi
+    # minimal create github status post:
+    # https://developer.github.com/v3/repos/statuses/#create-a-status
+    - |
+      state="success"
+      description="Minimal status description"
+      context="ci/minimal_status"
+      owner="${CIRCLE_PROJECT_USERNAME}"
+      repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
+      sha="${CIRCLE_SHA1}"
+
+      curl -X POST \
+      --silent --show-error --write-out "STATUS: %{http_code}" \
+      -H "Accept: application/vnd.github.v3+json" \
+      -H "Content-Type: application/json; charset=utf-8" \
+      -H "Authorization: token ${GITHUB_STATUS_ACCESS_TOKEN}" \
+      -H "User-Agent: ExampleNameCIStatus" \
+      -d "$(printf '
+          {
+           "state": "%s",
+           "description": "%s",
+           "context": "%s"
+          }
+          '  "$state" "$description" "$context"
+      )" \
+      "https://api.github.com/repos/${owner}/${repo}/statuses/${sha}"
 
 dependencies:
   # Cache ShellCheck for subsequent builds
