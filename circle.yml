@@ -2,12 +2,16 @@ test:
   override:
     - |
       if bin/test; then
-        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context tests -state success -desc "Tests passed" -url "$GITHUB_STATUS_TARGET_URL"
+        state="success"
+        desc="Tests passed"
       else
-        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context tests -state failure -desc "Test failures" -url "$GITHUB_STATUS_TARGET_URL"
-        false # fail the build
+        state="failure"
+        desc="Test failures"
       fi
+      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context tests -state "${state}" -desc "${desc}"
+      if [ "$state" = "failure" ]; then false; else true; fi # 'false' fails the build
   post:
+    # Alternative style
     - |
       if bin/lint-shell; then
         libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state success -desc "Shellcheck satisfactory"
