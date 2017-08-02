@@ -8,8 +8,7 @@ main() {
   else
     ./bin/setup-deps-linux
   fi
-  rm -rf bats
-  git clone --depth 1 https://github.com/sstephenson/bats.git
+  ./bin/install-bats
 }
 
 main
