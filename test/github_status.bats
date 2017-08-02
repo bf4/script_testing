@@ -202,3 +202,41 @@ teardown() {
 @test 'github_status        run: customize GITHUB_USER_AGENT' {
   skip
 }
+
+@test 'github_status        run: handles api errors when python is pretty printing result' {
+  skip
+  # e.g. got
+  # {"message":"No commit found for SHA: 6fd5c99a02b339e217164183575b844dcb2566b0",
+  #   "documentation_url":"https://developer.github.com/v3/repos/statuses/"}
+  # {"message":"Validation Failed",
+  #   "errors":[{"resource":"Status","code":"custom","field":"sha","message":"sha must be a 40 character SHA1"}],
+  #   "documentation_url":"https://developer.github.com/v3/repos/statuses/#create-a-status"}
+  # but python code is expecting
+  # {"url":"https://api.github.com/repos/bf4/script_testing/statuses/414fca9e31480df9a354fc4f41f45f375c6f39c5",
+  #   "id":1428282038,
+  #    "state":"failure",
+  #    "description":"Style errors",
+  #    "target_url":null,
+  #    "context":"lint_style",
+  #    "created_at":"2017-08-02T16:07:16Z",
+  #    "updated_at":"2017-08-02T16:07:16Z",
+  #    "creator":{"login":"bf4","id":142914,"avatar_url":"https://avatars2.githubusercontent.com/u/142914?v=4",
+  #               "gravatar_id":"","url":"https://api.github.com/users/bf4",
+  #               "html_url":"https://github.com/bf4","followers_url":"https://api.github.com/users/bf4/followers",
+  #               "following_url":"https://api.github.com/users/bf4/following{/other_user}",
+  #               "gists_url":"https://api.github.com/users/bf4/gists{/gist_id}",
+  #               "starred_url":"https://api.github.com/users/bf4/starred{/owner}{/repo}",
+  #               "subscriptions_url":"https://api.github.com/users/bf4/subscriptions",
+  #               "organizations_url":"https://api.github.com/users/bf4/orgs",
+  #               "repos_url":"https://api.github.com/users/bf4/repos",
+  #               "events_url":"https://api.github.com/users/bf4/events{/privacy}",
+  #               "received_events_url":"https://api.github.com/users/bf4/received_events",
+  #               "type":"User",
+  #               "site_admin":false}}
+  #
+  # so we get the error output
+  # url
+  # Traceback (most recent call last):
+  #   File "<string>", line 1, in <module>
+  #   KeyError: 'url'
+}
