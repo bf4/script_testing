@@ -24,7 +24,7 @@ check_files() {
 }
 
 # shellcheck disable=SC2046
-check_files $(git ls-files bin | xargs -0)
+check_files $(git ls-files bin libexec test/*.bash | xargs -0)
 exitstatus+=$?
 
 exit $exitstatus
