@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
 
-rm -rf bats
-git clone --depth 1 https://github.com/sstephenson/bats.git
+set -eo pipefail
+
+main() {
+  if [ "$(uname -s)" = "Darwin" ]; then
+    ./bin/setup-deps-osx
+  else
+    ./bin/setup-deps-linux
+  fi
+  ./bin/install-bats
+}
+
+main

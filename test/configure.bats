@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
-load test_helper
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
 
 @test "configure with no arguments" {
   run configure

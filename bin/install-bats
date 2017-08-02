@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+main() {
+  rm -rf bats
+  git clone --depth 1 https://github.com/sstephenson/bats.git
+  rm -rf test/test_helper
+  git clone --depth 1 https://github.com/ztombol/bats-support test/test_helper/bats-support
+  git clone --depth 1 https://github.com/ztombol/bats-assert test/test_helper/bats-assert
+}
+
+main

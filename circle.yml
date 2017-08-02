@@ -1,6 +1,62 @@
-dependencies:
-  post:
-  - bin/setup
 test:
   override:
-  - bin/test
+    - |
+      if bin/test; then
+        state="success"
+        desc="Tests passed"
+      else
+        state="failure"
+        desc="Test failures"
+      fi
+      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context tests -state "${state}" -desc "${desc}"
+      if [ "$state" = "failure" ]; then false; else true; fi # 'false' fails the build
+  post:
+    # Alternative style
+    - |
+      if bin/lint-shell; then
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state success -desc "Shellcheck satisfactory"
+      else
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state failure -desc "Shellcheck failed"
+        false # fail the build
+      fi
+    # minimal create github status post:
+    # https://developer.github.com/v3/repos/statuses/#create-a-status
+    - |
+      state="success"
+      description="Minimal status description"
+      context="ci/minimal_status"
+      owner="${CIRCLE_PROJECT_USERNAME}"
+      repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
+      sha="${CIRCLE_SHA1}"
+
+      curl -X POST \
+      --silent --show-error --write-out "STATUS: %{http_code}" \
+      -H "Accept: application/vnd.github.v3+json" \
+      -H "Content-Type: application/json; charset=utf-8" \
+      -H "Authorization: token ${GITHUB_STATUS_ACCESS_TOKEN}" \
+      -H "User-Agent: ExampleNameCIStatus" \
+      -d "$(printf '
+          {
+           "state": "%s",
+           "description": "%s",
+           "context": "%s"
+          }
+          '  "$state" "$description" "$context"
+      )" \
+      "https://api.github.com/repos/${owner}/${repo}/statuses/${sha}"
+
+dependencies:
+  # Cache ShellCheck for subsequent builds
+  cache_directories:
+    - "~/.cabal"
+  post:
+  - bin/setup
+
+machine:
+  environment:
+    PATH: $HOME/.cabal/bin/:$PATH # adds shellcheck to path
+    GITHUB_STATUS_USER_AGENT: "bf4CiStatus"
+    GITHUB_STATUS_PR_NUMBER: "${CIRCLE_PR_NUMBER:-$CIRCLE_SHA1}"
+    GITHUB_STATUS_REPO_OWNER: "$CIRCLE_PROJECT_USERNAME"
+    GITHUB_STATUS_REPO_NAME: "${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
+    GITHUB_STATUS_TARGET_URL: "$CIRCLE_BUILD_URL"

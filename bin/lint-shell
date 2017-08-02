@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -ou pipefail
+
+exitstatus=0
+
+check_files() {
+  # shellcheck disable=SC2124
+  local files=$@
+  local result
+  echo
+  echo "Checking:"
+  echo "$files"
+  # shellcheck disable=SC2086
+  shellcheck --external-sources --format=tty --shell=bash $files
+  result=$?
+
+  if [[ $result -eq 0 ]]; then
+    echo "SUCCESS[shellcheck]"
+  else
+    echo "FAILURE[shellcheck]: $result. See https://github.com/koalaman/shellcheck/blob/master/shellcheck.1.md#return-values"
+    $result
+  fi
+}
+
+# shellcheck disable=SC2046
+check_files $(git ls-files bin libexec test/*.bash | xargs -0)
+exitstatus+=$?
+
+exit $exitstatus

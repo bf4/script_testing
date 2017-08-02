@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+main() {
+  brew update
+
+  brew install shellcheck || brew upgrade shellcheck
+}
+
+main
