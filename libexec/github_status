@@ -2,6 +2,18 @@
 #
 # Get or set github status for a PR
 #
+#   $ bin/github_pr_status get [pr_number|commit_sha] \
+#     -owner [owner] \
+#     -repo [repo_name]
+#
+#   $ bin/github_pr_status create [pr_number|commit_sha] \
+#     -owner [owner] \
+#     -repo [repo_name] \
+#     -state [pending|success|error|failure] \
+#     -desc [description] \
+#     -context [context_tag] \
+#     -url [optional_target_url]
+#
 # Required:
 #   https://github.com/settings/tokens/new
 #   GITHUB_REPO_STATUS_TOKEN with 'repo' or 'repo:status' OAuth scope
@@ -37,6 +49,17 @@ IFS=$'\n\t'
 # Influenced by https://dev.to/thiht/shell-scripts-matter
 # And see https://github.com/bf4/Notes/wiki/Shell-Scripting
 
+# =========== Init Args ===========
+cmd="${1:-}"
+pr=""
+owner=""
+repo=""
+context=""
+state=""
+description=""
+target_url=""
+GITHUB_USER_AGENT="${GITHUB_USER_AGENT:-ExampleNameCIStatus}"
+
 DEBUG="${DEBUG:-false}"
 info()    { echo "[INFO] $*" >&2 ; }
 error()   { echo "[ERROR] $*" >&2 ; }
@@ -69,7 +92,7 @@ create_status() {
   if [ -z "${state}" ]; then error "-state is required" ; ((valid+=1)); fi
   if [ -z "${description}" ]; then error "-desc is required" ; ((valid+=1)); fi
   if [ -z "${context}" ]; then error "-context is required" ; ((valid+=1)); fi
-  if [ "$valid" -ne 0 ]; then fatal "Missing required options" ; exit 1; fi
+  if [ "$valid" -ne 0 ]; then fatal "Missing required options" ; fi
   # end validate options
   local pr_number_or_sha
   pr_number_or_sha="$1"
@@ -175,104 +198,100 @@ cleanup() {
   rm -f .git/FETCH_HEAD
 }
 
-if [ -z "$GITHUB_REPO_STATUS_TOKEN" ]; then error "GITHUB_REPO_STATUS_TOKEN not found in env"; abort=1; show_help; fi
-if [ -z "${1:-}" ]; then error "No command given"; abort=1; show_help; fi
+parse_args() {
+  while [ $# -gt 1 ]; do
+    debug "Processing '$1'. All $# options are: ${*}"
+    case "$1" in
+      -owner)
+        shift; owner="$1"; shift
+        debug "owner=$owner"
+        true
+        ;;
 
-if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
-################################### main
-trap 'finish' EXIT
-trap 'finish_error $LINENO' ERR
+      -repo)
+        shift; repo="$1"; shift
+        debug "repo=$repo"
+        true
+        ;;
 
-cmd="$1"
-pr=""
-owner=""
-repo=""
-context=""
-state=""
-description=""
-target_url=""
-GITHUB_USER_AGENT="${GITHUB_USER_AGENT:-ExampleNameCIStatus}"
+      -context)
+        shift; context="$1"; shift
+        debug "context=$context"
+        true
+        ;;
 
-while [ $# -gt 1 ]; do
-  debug "Processing '$1'. All $# options are: ${*}"
-  case "$1" in
-    -owner)
-      shift; owner="$1"; shift
-      debug "owner=$owner"
-      true
-      ;;
+      -desc|-description)
+        shift; description="$1"; shift
+        debug "description=$description"
+        true
+        ;;
 
-    -repo)
-      shift; repo="$1"; shift
-      debug "repo=$repo"
-      true
-      ;;
+      -state)
+        shift; state="$1"; shift
+        debug "state=$description"
+        case "$state" in
+          pending|success|error|failure)
+            true
+            ;;
+          *)
+            fatal "Invalid State: '${state}'"
+            ;;
 
-    -context)
-      shift; context="$1"; shift
-      debug "context=$context"
-      true
-      ;;
+        esac
+        ;;
 
-    -desc|-description)
-      shift; description="$1"; shift
-      debug "description=$description"
-      true
-      ;;
+      -url)
+        shift; target_url="$1"; shift
+        debug "target_url=$target_url"
+        true
+        ;;
 
-    -state)
-      shift; state="$1"; shift
-      debug "state=$description"
-      case "$state" in
-        pending|success|error|failure)
+      get|create)
+        cmd="$1"; shift
+        pr="$1"; shift
+        debug "cmd=$cmd pr=$pr"
+        ;;
+
+      *)
+        if [ $# -gt 1 ]; then
+          debug "Skipping '$1'"
           true
-          ;;
-        *)
-          fatal "Invalid State: '${state}'"
-          ;;
+        else
+          fatal "Missing [cmd] [pr number]. got ${*}"
+        fi
+    esac
+  done
 
-      esac
+  debug "Final $# Options are: ${*}"
+}
+
+main() {
+  trap 'finish' EXIT
+  trap 'finish_error $LINENO' ERR
+  if [ -z "${1:-}" ]; then error "No command given"; abort=1; show_help; fi
+  if [ -z "$GITHUB_REPO_STATUS_TOKEN" ]; then error "GITHUB_REPO_STATUS_TOKEN not found in env"; abort=1; show_help; fi
+
+  parse_args "$@"
+
+  case "$cmd" in
+    get)
+      get_status "$pr"
       ;;
-
-    -url)
-      shift; target_url="$1"; shift
-      debug "target_url=$description"
-      true
+    create)
+      create_status "$pr"
       ;;
-
-    get|create)
-      cmd="$1"; shift
-      pr="$1"; shift
-      debug "cmd=$cmd pr=$pr"
+    help)
+      show_help
       ;;
 
     *)
-      if [ $# -gt 1 ]; then
-        debug "Skipping '$1'"
-        true
-      else
-        fatal "Missing [cmd] [pr number]. got ${*}"
-      fi
+      error "Don't know $cmd"
+      abort=1
+      show_help
+      ;;
   esac
-done
+}
 
-debug "Final $# Options are: ${*}"
-
-case "$cmd" in
-  get)
-    get_status "$pr"
-    ;;
-  create)
-    create_status "$pr"
-    ;;
-  help)
-    show_help
-    ;;
-
-  *)
-    error "Don't know $cmd"
-    abort=1
-    show_help
-    ;;
-esac
+if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
+  main "$@"
 fi
