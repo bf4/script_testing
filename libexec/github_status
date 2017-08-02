@@ -16,10 +16,12 @@
 #
 # Required:
 #   https://github.com/settings/tokens/new
-#   GITHUB_REPO_STATUS_TOKEN with 'repo' or 'repo:status' OAuth scope
+#   GITHUB_STATUS_ACCESS_TOKEN with 'repo' or 'repo:status' OAuth scope
 #
 # Optional:
-#   GITHUB_USER_AGENT
+#   GITHUB_STATUS_USER_AGENT
+#   GITHUB_STATUS_REPO_OWNER #          equivalent to -owner [owner]
+#   GITHUB_STATUS_REPO_NAME  #          equivalent to -repo [repo_name]
 #   DEBUG
 #
 # GitHub Status API Docs:
@@ -52,13 +54,13 @@ IFS=$'\n\t'
 # =========== Init Args ===========
 cmd="${1:-}"
 pr=""
-owner=""
-repo=""
+owner="${GITHUB_STATUS_REPO_OWNER:-}"
+repo="${GITHUB_STATUS_REPO_NAME:-}"
 context=""
 state=""
 description=""
 target_url=""
-GITHUB_USER_AGENT="${GITHUB_USER_AGENT:-ExampleNameCIStatus}"
+GITHUB_STATUS_USER_AGENT="${GITHUB_STATUS_USER_AGENT:-ExampleNameCIStatus}"
 
 DEBUG="${DEBUG:-false}"
 info()    { echo "[INFO] $*" >&2 ; }
@@ -103,8 +105,8 @@ create_status() {
   curl -X POST --silent \
   -H "Accept: application/vnd.github.v3+json" \
   -H "Content-Type: application/json; charset=utf-8" \
-  -H "Authorization: token ${GITHUB_REPO_STATUS_TOKEN}" \
-  -H "User-Agent: ${GITHUB_USER_AGENT}" \
+  -H "Authorization: token ${GITHUB_STATUS_ACCESS_TOKEN}" \
+  -H "User-Agent: ${GITHUB_STATUS_USER_AGENT}" \
   -d "$(create_payload)" \
   "$url" --silent \
   | python -c 'import json,sys;obj=json.load(sys.stdin); print "url", obj["url"]; print "state", obj["state"]; print "description", obj["description"]; print "target_url", obj["target_url"]; print "context", obj["context"]'
@@ -147,8 +149,8 @@ get_status() {
   debug "pr ${pr_number_or_sha}, sha ${ref}"
   curl -X GET --silent \
   -H "Accept: application/vnd.github.v3+json" \
-  -H "Authorization: token ${GITHUB_REPO_STATUS_TOKEN}" \
-  -H "User-Agent: ${GITHUB_USER_AGENT}" \
+  -H "Authorization: token ${GITHUB_STATUS_ACCESS_TOKEN}" \
+  -H "User-Agent: ${GITHUB_STATUS_USER_AGENT}" \
   "$url" \
   | print_statuses
 }
@@ -269,7 +271,7 @@ main() {
   trap 'finish' EXIT
   trap 'finish_error $LINENO' ERR
   if [ -z "${1:-}" ]; then error "No command given"; abort=1; show_help; fi
-  if [ -z "$GITHUB_REPO_STATUS_TOKEN" ]; then error "GITHUB_REPO_STATUS_TOKEN not found in env"; abort=1; show_help; fi
+  if [ -z "$GITHUB_STATUS_ACCESS_TOKEN" ]; then error "GITHUB_STATUS_ACCESS_TOKEN not found in env"; abort=1; show_help; fi
 
   parse_args "$@"
 

@@ -2,17 +2,17 @@ test:
   override:
     - |
       if bin/test; then
-        libexec/github_status create "$CI_PR_NUMBER" -owner "$CI_REPO_OWNER" -repo "$CI_REPO_NAME" -url "$CI_BUILD_URL" -context tests -state success -desc "Tests passed"
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context tests -state success -desc "Tests passed" -url "$GITHUB_STATUS_TARGET_URL"
       else
-        libexec/github_status create "$CI_PR_NUMBER" -owner "$CI_REPO_OWNER" -repo "$CI_REPO_NAME" -url "$CI_BUILD_URL" -context tests -state failure -desc "Test failures"
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context tests -state failure -desc "Test failures" -url "$GITHUB_STATUS_TARGET_URL"
         false # fail the build
       fi
   post:
     - |
       if bin/lint-shell; then
-        libexec/github_status create "$CI_PR_NUMBER" -owner "$CI_REPO_OWNER" -repo "$CI_REPO_NAME" -url "$CI_BUILD_URL" -context lint/shell -state success -desc "Shellcheck satisfactory"
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state success -desc "Shellcheck satisfactory"
       else
-        libexec/github_status create "$CI_PR_NUMBER" -owner "$CI_REPO_OWNER" -repo "$CI_REPO_NAME" -url "$CI_BUILD_URL" -context lint/shell -state failure -desc "Shellcheck failed"
+        libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -context lint/shell -state failure -desc "Shellcheck failed"
         false # fail the build
       fi
 
@@ -26,8 +26,8 @@ dependencies:
 machine:
   environment:
     PATH: $HOME/.cabal/bin/:$PATH # adds shellcheck to path
-    GITHUB_USER_AGENT: "bf4CiStatus"
-    CI_PR_NUMBER: "${CIRCLE_PR_NUMBER:-$CIRCLE_SHA1}"
-    CI_REPO_OWNER: "$CIRCLE_PROJECT_USERNAME"
-    CI_REPO_NAME: "${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
-    CI_BUILD_URL: "$CI_BUILD_URL"
+    GITHUB_STATUS_USER_AGENT: "bf4CiStatus"
+    GITHUB_STATUS_PR_NUMBER: "${CIRCLE_PR_NUMBER:-$CIRCLE_SHA1}"
+    GITHUB_STATUS_REPO_OWNER: "$CIRCLE_PROJECT_USERNAME"
+    GITHUB_STATUS_REPO_NAME: "${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
+    GITHUB_STATUS_TARGET_URL: "$CIRCLE_BUILD_URL"
