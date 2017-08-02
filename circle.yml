@@ -4,26 +4,42 @@ test:
       if bin/test; then state="success"; desc="Tests passed"
       else              state="failure"; desc="Test failures"; fi
       context=tests
-      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context "$context}" -state "${state}" -desc "${desc}"
+      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context "${context}" -state "${state}" -desc "${desc}"
       if [ "$state" = "failure" ]; then false; else true; fi # 'false' fails the build
   post:
     - |
       if bin/lint-shell; then state="success"; desc="ShellCheck satisfactory"
       else                    state="failure";  desc="ShellCheck failed"; fi
       context=lint/shell
-      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context "$context}" -state "${state}" -desc "${desc}"
+      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context "${context}" -state "${state}" -desc "${desc}"
       if [ "$state" = "failure" ]; then false; else true; fi # 'false' fails the build
+    - |
+      check_spelling() { misspell -w -error -source=text libexec bin test/*.bats; }
+      if check_spelling; then state="success"; desc="Great spelling as far as I can tell"
+      else                    state="failure"; desc="Spelling errors found"; fi
+      git --no-pager diff 2>&1
+      context=lint/spelling
+      libexec/github_status create "$GITHUB_STATUS_PR_NUMBER" -url "$GITHUB_STATUS_TARGET_URL" -context "${context}" -state "${state}" -desc "${desc}"
+      if [ "$state" = "failure" ]; then false; else true; fi # 'false' fails the build
+
 
 dependencies:
   # Cache ShellCheck for subsequent builds
   cache_directories:
     - "~/.cabal"
+    - "~/.local/bin"
   post:
   - bin/setup
+  - |
+    if ! command -v misspell &>/dev/null; then
+      # go get -u github.com/client9/misspell/cmd/misspell # and misspell will be in your GOPATH
+      curl -L -o ./install-misspell.sh https://raw.githubusercontent.com/client9/misspell/master/install-misspell.sh
+      sh ./install-misspell.sh -b "$HOME/.local/bin" # will install as "$HOME/.local/bin/misspell"
+    fi
 
 machine:
   environment:
-    PATH: $HOME/.cabal/bin/:$PATH # adds shellcheck to path
+    PATH: $HOME/.cabal/bin/:$HOME/.local/bin:$PATH # adds shellcheck (cabal) to path
     GITHUB_STATUS_USER_AGENT: "bf4CiStatus"
     GITHUB_STATUS_PR_NUMBER: "${CIRCLE_PR_NUMBER:-$CIRCLE_SHA1}"
     GITHUB_STATUS_REPO_OWNER: "$CIRCLE_PROJECT_USERNAME"
