@@ -24,6 +24,10 @@
 #   GITHUB_STATUS_REPO_NAME  #          equivalent to -repo [repo_name]
 #   DEBUG
 #
+# System Dependencies:
+#   python
+#   curl
+#
 # GitHub Status API Docs:
 #   https://developer.github.com/v3/repos/statuses/
 #
@@ -51,6 +55,12 @@ IFS=$'\n\t'
 # Influenced by https://dev.to/thiht/shell-scripts-matter
 # And see https://github.com/bf4/Notes/wiki/Shell-Scripting
 
+DEBUG="${DEBUG:-false}"
+info()    { echo "[INFO] $*" >&2 ; }
+error()   { echo "[ERROR] $*" >&2 ; }
+fatal()   { echo "[ERROR] $*" >&2 ; exit 1 ; }
+debug()   { if [ "$DEBUG" = "true" ]; then echo "[DEBUG] $*" >&2 ; fi ; }
+
 # =========== Init Args ===========
 cmd="${1:-}"
 pr=""
@@ -62,11 +72,6 @@ description=""
 target_url=""
 GITHUB_STATUS_USER_AGENT="${GITHUB_STATUS_USER_AGENT:-ExampleNameCIStatus}"
 
-DEBUG="${DEBUG:-false}"
-info()    { echo "[INFO] $*" >&2 ; }
-error()   { echo "[ERROR] $*" >&2 ; }
-fatal()   { echo "[ERROR] $*" >&2 ; exit 1 ; }
-debug()   { if [ "$DEBUG" = "true" ]; then echo "[DEBUG] $*" >&2 ; fi ; }
 
 # Always log finish, bash pseudo-signal: EXIT
 # Usage:
